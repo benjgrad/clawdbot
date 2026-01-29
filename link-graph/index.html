@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Personal Knowledge Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #mynetwork {
+            width: 100%;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+    <div id="mynetwork"></div>
+    <script>
+        // Sample graph data - will be dynamically generated
+        const nodes = new vis.DataSet([
+            {id: 1, label: 'Job Search'},
+            {id: 2, label: 'Love Ethic'},
+            {id: 3, label: 'Fitness Goals'},
+            {id: 4, label: 'Personal Development'}
+        ]);
+
+        const edges = new vis.DataSet([
+            {from: 1, to: 4},
+            {from: 2, to: 4},
+            {from: 3, to: 4}
+        ]);
+
+        const container = document.getElementById('mynetwork');
+        const data = { nodes, edges };
+        const options = {
+            nodes: {
+                shape: 'dot',
+                size: 20,
+                color: {
+                    background: '#097969',
+                    border: '#005843'
+                },
+                font: {
+                    size: 15,
+                    color: 'white'
+                }
+            },
+            edges: {
+                color: '#666'
+            },
+            layout: {
+                improvedLayout: true
+            },
+            interaction: {
+                hover: true
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+    </script>
+</body>
+</html>
