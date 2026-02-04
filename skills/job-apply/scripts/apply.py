@@ -69,9 +69,10 @@ def guess_company_from_url(url: str) -> str:
     return slugify(parts[0]) if parts else "unknown"
 
 
-def get_browser_profile(headless: bool = True) -> BrowserProfile:
+def get_browser_profile(headless: bool = True, storage_state_path: str | None = None) -> BrowserProfile:
     return BrowserProfile(
         headless=headless,
+        storage_state=storage_state_path,
         args=[
             "--no-sandbox",
             "--disable-dev-shm-usage",
@@ -229,7 +230,7 @@ def _extract_code(text: str) -> str | None:
     return None
 
 
-
+def get_controller() -> Controller:
     """Controller with CAPTCHA solving and email verification."""
     controller = Controller()
 
@@ -456,11 +457,93 @@ Report back:
 - Any errors encountered"""
 
 
+def build_resume_task_prompt(
+    url: str,
+    cover_letter_path: str | None = None,
+    dry_run: bool = False,
+    app_dir: Path | None = None,
+) -> str:
+    """Build a task prompt for resuming a previously started application."""
+    previous_context = ""
+    result_file = app_dir / "result.json" if app_dir else None
+    if result_file and result_file.exists():
+        try:
+            prev = json.loads(result_file.read_text())
+            agent_result = prev.get("agent_result", "")
+            errors = [e for e in prev.get("errors", []) if e]
+            status = prev.get("status", "unknown")
+            previous_context = f"""
+PREVIOUS ATTEMPT CONTEXT:
+- Previous status: {status}
+- Previous result: {agent_result[:500] if agent_result else 'No result recorded'}
+- Errors from previous attempt: {'; '.join(errors) if errors else 'None'}
+"""
+        except Exception:
+            pass
+
+    resume_note = f"Resume PDF to upload: {RESUME_PATH}" if RESUME_PATH.exists() else "No resume file found."
+
+    cover_letter_note = ""
+    if cover_letter_path and Path(cover_letter_path).exists():
+        cover_letter_note = f"\nCover letter to upload if there is a field for it: {cover_letter_path}"
+
+    submit_instruction = (
+        "Do NOT submit the form. Stop just before the final submit button and report what you see."
+        if dry_run
+        else "Submit the application. If there is a final confirmation page, report what it says."
+    )
+
+    return f"""RESUME a previously started job application at: {url}
+
+IMPORTANT: You are RESUMING an application that was previously started but did not complete.
+Your browser session has been restored with saved cookies and login state from the previous attempt.
+You should already be logged into the ATS (Greenhouse, Lever, Workday, etc.) if an account was created.
+{previous_context}
+INSTRUCTIONS FOR RESUME:
+1. Navigate to the job posting URL: {url}
+2. Check if you are already logged in or if the application is partially filled
+3. If the application form is already partially completed, continue from where it left off
+4. If you need to re-enter the application, find and click the "Apply" button
+5. Do NOT create a duplicate account -- check if you are already logged in first
+6. If an email verification is pending, use check_email_for_verification_code to get the code
+7. Fill in any remaining required fields using the candidate information below
+8. {resume_note}
+9. Upload the resume when the form has a file upload field{cover_letter_note}
+10. If there is a CAPTCHA, solve it using the solve_captcha_paid action
+11. {submit_instruction}
+
+You are applying on behalf of Benjamin Grady, a Senior Software Engineer based in Toronto, Canada.
+
+CANDIDATE INFORMATION:
+- Full Name: Benjamin Grady
+- Email: bengrady4@gmail.com
+- Phone: +1 (613) 217-7549
+- Location: Toronto, Ontario, Canada
+- Current Title: Senior Software Engineer
+- Experience: Fullstack development - React, .NET/C#, Golang, Python, Java
+- Work Authorization: Canadian Citizen
+
+IMPORTANT:
+- If the previous attempt created an account, you should already be logged in via saved cookies
+- If the site requires email verification, use the check_email_for_verification_code action
+- For any field you're unsure about, use reasonable defaults for a senior software engineer
+- If a field requires information not provided, leave it blank or skip it
+- Take note of any confirmation number or reference ID after submission
+
+Report back:
+- Company name and job title
+- Whether the application was submitted successfully
+- Any confirmation number or reference
+- Any fields that couldn't be filled
+- Any errors encountered"""
+
+
 async def run_application(
     url: str,
     company_slug: str | None = None,
     cover_letter_path: str | None = None,
     dry_run: bool = False,
+    resume: bool = False,
 ) -> dict:
     """Run the full application flow and return results."""
     # Determine company slug
@@ -472,6 +555,21 @@ async def run_application(
     screenshots_dir = app_dir / "screenshots"
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
+    # Session persistence: always save to per-company storage_state.json
+    storage_state_path = str(app_dir / "storage_state.json")
+
+    # Auto-detect resume: if previous attempt failed and session state exists
+    if not resume:
+        prev_result_file = app_dir / "result.json"
+        if prev_result_file.exists():
+            try:
+                prev = json.loads(prev_result_file.read_text())
+                if prev.get("status") in ("failed", "error") and Path(storage_state_path).exists():
+                    resume = True
+                    print(f"Auto-resuming: previous attempt status was '{prev['status']}'")
+            except Exception:
+                pass
+
     timestamp = datetime.now().strftime("%Y-%m-%d")
     result_data = {
         "url": url,
@@ -482,17 +580,22 @@ async def run_application(
         "errors": [],
         "confirmation": None,
         "agent_result": None,
+        "resumed": resume,
+        "storage_state_path": storage_state_path,
     }
 
-    # Build task prompt
-    task = build_task_prompt(url, cover_letter_path, dry_run)
+    # Build task prompt (resume-aware)
+    if resume:
+        task = build_resume_task_prompt(url, cover_letter_path, dry_run, app_dir)
+    else:
+        task = build_task_prompt(url, cover_letter_path, dry_run)
 
     # Save the task prompt for reference
     (app_dir / "task_prompt.txt").write_text(task)
 
     # Run the browser agent
     llm = get_llm()
-    browser_profile = get_browser_profile(headless=True)
+    browser_profile = get_browser_profile(headless=True, storage_state_path=storage_state_path)
     controller = get_controller()
 
     conversation_path = app_dir / "conversation.json"
@@ -541,6 +644,15 @@ async def run_application(
     except Exception as e:
         result_data["status"] = "error"
         result_data["errors"].append(str(e))
+    finally:
+        # Always export browser state for future resume, regardless of outcome
+        try:
+            if hasattr(agent, 'browser_session') and agent.browser_session:
+                await agent.browser_session.export_storage_state(storage_state_path)
+        except Exception:
+            pass  # Best-effort; StorageStateWatchdog may have already saved
+
+    result_data["is_resumable"] = result_data["status"] in ("failed", "error")
 
     # Save result
     (app_dir / "result.json").write_text(json.dumps(result_data, indent=2, default=str))
@@ -580,13 +692,20 @@ async def main():
     parser.add_argument("--company", help="Company slug for directory naming")
     parser.add_argument("--cover-letter", help="Path to cover letter PDF")
     parser.add_argument("--dry-run", action="store_true", help="Stop before submitting")
+    parser.add_argument("--resume", action="store_true", help="Resume a previously started application using saved browser state")
     args = parser.parse_args()
 
+    company = args.company or guess_company_from_url(args.url)
+    state_file = APPLICATIONS / company / "storage_state.json"
+
     print(f"Starting application: {args.url}")
-    print(f"Company: {args.company or '(auto-detect from URL)'}")
+    print(f"Company: {company}")
     print(f"Dry run: {args.dry_run}")
-    print(f"Resume: {RESUME_PATH}")
+    print(f"Resume flag: {args.resume}")
+    print(f"Saved session: {'found' if state_file.exists() else 'none'}")
+    print(f"Resume PDF: {RESUME_PATH}")
     print(f"CAPSOLVER_API_KEY: {'set' if os.environ.get('CAPSOLVER_API_KEY') else 'NOT SET'}")
+    print(f"EMAIL_PASSWORD: {'set' if os.environ.get('GMAIL_APP_PASSWORD') or os.environ.get('EMAIL_PASSWORD') else 'NOT SET'}")
     print("---")
 
     result = await run_application(
@@ -594,6 +713,7 @@ async def main():
         company_slug=args.company,
         cover_letter_path=args.cover_letter,
         dry_run=args.dry_run,
+        resume=args.resume,
     )
 
     print("\n--- RESULT ---")

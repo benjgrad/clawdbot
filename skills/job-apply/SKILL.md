@@ -1,25 +1,29 @@
 ---
 name: job-apply
-description: Apply to jobs autonomously. Takes a job posting URL and handles the entire process — navigates to the application, fills forms, uploads resume, solves CAPTCHAs, captures screenshots, and archives everything. Use when the user shares a job link, asks to apply, or wants to submit an application.
+description: Apply to jobs autonomously. Takes a job posting URL and handles the entire process — generates a cover letter, navigates to the application, fills forms, uploads resume and cover letter, solves CAPTCHAs, captures screenshots, and archives everything. Use when the user shares a job link, asks to apply, or wants to submit an application.
 metadata: {"moltbot":{"os":["linux"],"requires":{"bins":["python3"],"env":["ANTHROPIC_API_KEY","CAPSOLVER_API_KEY"]}}}
 ---
 
 # Job Application Skill
 
-One-command job application automation. The user pastes a job URL, you run one script, report the result.
+Two-step job application automation. The user pastes a job URL, you generate a cover letter then apply.
 
-## How to Apply
+## Standard Workflow
 
-Run the apply script with the job URL:
+**Always generate a cover letter first, then apply with it:**
 
 ```bash
-/home/bengrady4/clawd/tools/.venv/bin/python /home/bengrady4/clawd/skills/job-apply/scripts/apply.py "<JOB_URL>"
+# Step 1: Generate a tailored cover letter
+/home/bengrady4/clawd/tools/.venv/bin/python /home/bengrady4/clawd/skills/job-apply/scripts/cover_letter.py "<JOB_URL>" --company <slug>
+
+# Step 2: Apply with the cover letter
+/home/bengrady4/clawd/tools/.venv/bin/python /home/bengrady4/clawd/skills/job-apply/scripts/apply.py "<JOB_URL>" --company <slug> --cover-letter /home/bengrady4/clawd/captures/applications/<slug>/cover_letter.pdf
 ```
 
-That's it. The script handles everything:
+The apply script handles everything:
 - Navigates to the job posting and finds the apply button
 - Fills all form fields with Ben's info (name, email, phone, location)
-- Uploads the resume PDF
+- Uploads the resume PDF and cover letter
 - Solves CAPTCHAs via CapSolver
 - Takes screenshots at each step
 - Saves a session GIF, conversation log, and full history
@@ -37,7 +41,28 @@ That's it. The script handles everything:
 
 # Dry run — stops before submitting
 ... apply.py "<URL>" --dry-run
+
+# Resume a previously failed application (loads saved browser session)
+... apply.py "<URL>" --company <slug> --resume
 ```
+
+### Resuming a Failed Application
+
+If an application failed partway through (timeout, email verification needed, context overflow), the browser session is automatically saved. To resume:
+
+```bash
+... apply.py "<URL>" --company <slug> --resume
+```
+
+**Auto-detection:** If you re-run the same company URL without `--resume`, the script automatically detects the previous failed attempt and resumes with saved cookies. The `--resume` flag is an explicit override.
+
+The resume feature:
+- Loads saved cookies and localStorage from `captures/applications/<company>/storage_state.json`
+- Uses a modified prompt that tells the agent it is resuming
+- Avoids duplicate account creation by preserving logged-in state
+- Includes context from the previous attempt (errors, status)
+
+**Note:** Always provide `--company` when resuming to ensure the correct directory is used.
 
 ### Output
 
@@ -58,37 +83,41 @@ Report to the user:
 
 If the application failed, check `captures/applications/<company>/result.json` for details.
 
-## Generating a Cover Letter
+## Cover Letter Generation
 
-If the user wants a cover letter before applying:
-
-1. Read the job posting (use `web_fetch` or the built-in `browser` tool)
-2. Read the resume: `captures/resume/Benjamin Grady - Senior Software Engineer.pdf`
-3. Write a tailored cover letter
-4. Convert to PDF:
+The `cover_letter.py` script generates a tailored cover letter for each application:
 
 ```bash
-node -e "
-const puppeteer = require('/home/bengrady4/clawd/tools/node_modules/puppeteer');
-(async () => {
-  const b = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-  const p = await b.newPage();
-  await p.setContent(\`<html><body style='font-family:Georgia,serif;max-width:700px;margin:40px auto;line-height:1.6'>
-    COVER_LETTER_HTML_HERE
-  </body></html>\`);
-  await p.pdf({ path: '/home/bengrady4/clawd/captures/applications/COMPANY/cover_letter.pdf', format: 'Letter', margin: {top:'1in',bottom:'1in',left:'1in',right:'1in'} });
-  await b.close();
-})();
-"
+/home/bengrady4/clawd/tools/.venv/bin/python /home/bengrady4/clawd/skills/job-apply/scripts/cover_letter.py "<JOB_URL>" --company <slug>
 ```
 
-5. Then run apply.py with `--cover-letter` pointing to the PDF
+What it does:
+1. Fetches the job posting and extracts text
+2. Reads Ben's resume PDF for context
+3. Generates a tailored cover letter via Claude (concise, 3 paragraphs, specific to the role)
+4. Renders into a professional HTML template matching the resume's style (Calibri, blue accents)
+5. Converts HTML to PDF via Playwright
+
+Options:
+```bash
+# Use a local job description file instead of fetching URL
+... cover_letter.py "<URL>" --company <slug> --job-description /path/to/posting.txt
+
+# Custom output path
+... cover_letter.py "<URL>" --company <slug> --output /custom/path.pdf
+```
+
+Output: `captures/applications/<company>/cover_letter.pdf` and `cover_letter.html`
+
+The HTML template is at `{baseDir}/scripts/cover_letter_template.html`. It uses the same header style as the resume (centered name, blue "Senior Software Engineer" subtitle, contact line with dot separators, thin divider).
 
 ## Key Paths
 
 | Resource | Path |
 |----------|------|
 | Apply script | `{baseDir}/scripts/apply.py` |
+| Cover letter script | `{baseDir}/scripts/cover_letter.py` |
+| Cover letter template | `{baseDir}/scripts/cover_letter_template.html` |
 | Resume | `/home/bengrady4/clawd/captures/resume/Benjamin Grady - Senior Software Engineer.pdf` |
 | Application archives | `/home/bengrady4/clawd/captures/applications/<company>/` |
 | Tracker | `/home/bengrady4/clawd/captures/applications/tracker.md` |
@@ -107,7 +136,10 @@ const puppeteer = require('/home/bengrady4/clawd/tools/node_modules/puppeteer');
 
 ```
 captures/applications/<company>/
+  cover_letter.pdf     # Generated cover letter (if requested)
+  cover_letter.html    # HTML source for the cover letter
   result.json          # Full result with status, errors, URLs
+  storage_state.json   # Saved browser cookies/localStorage for resume
   task_prompt.txt      # The prompt sent to the browser agent
   conversation.json    # Full agent conversation log
   history.json         # Step-by-step agent history
