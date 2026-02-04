@@ -4,12 +4,17 @@
 
 ### 1. Job Search
 - Objective: Secure a new job that aligns with professional growth
+- **Resume:** `captures/resume/Benjamin Grady - Senior Software Engineer.pdf`
+- **Application tracker:** `captures/applications/tracker.md`
+- **Application archives:** `captures/applications/<company>/` (posting, cover letter, screenshots)
+- **Browser automation:** Built-in `browser` tool (clawd profile) + `tools/browser_agent.py` for CAPTCHAs
+- **CAPTCHA solving:** CapSolver API key available via env (`CAPSOLVER_API_KEY`)
 - Key Actions:
   - Update resume
   - Network and reach out to contacts
   - Research target companies
   - Practice interview skills
-- Tracking: Maintain a job search log
+- Tracking: Application tracker + per-company archive directories
 - Frequency of review: Weekly
 
 ### 2. Living by a Love Ethic (bell hooks)

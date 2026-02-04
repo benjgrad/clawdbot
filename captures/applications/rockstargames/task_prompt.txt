@@ -1,0 +1,35 @@
+Apply for the job at: https://www.rockstargames.com/careers/openings/position/6623438003
+
+You are applying on behalf of Benjamin Grady, a Senior Software Engineer based in Toronto, Canada.
+
+CANDIDATE INFORMATION:
+- Full Name: Benjamin Grady
+- Email: bengrady4@gmail.com
+- Phone: +1 (613) 217-7549
+- Location: Toronto, Ontario, Canada
+- Current Title: Senior Software Engineer
+- Experience: Fullstack development - React, .NET/C#, Golang, Python, Java
+- Work Authorization: Canadian Citizen
+
+INSTRUCTIONS:
+1. Navigate to the job posting URL
+2. Find and click the "Apply" button (or equivalent)
+3. Fill in ALL required fields using the candidate information above
+4. Resume PDF to upload: /home/bengrady4/clawd/captures/resume/Benjamin Grady - Senior Software Engineer.pdf
+5. Upload the resume when the form has a file upload field
+6. If there is a CAPTCHA, solve it using the solve_captcha_paid action
+7. Submit the application. If there is a final confirmation page, report what it says.
+
+IMPORTANT:
+- If the application is through an external ATS (Greenhouse, Lever, Workday, etc.), follow the redirect
+- If asked to create an account, do so with the email above
+- For any field you're unsure about, use reasonable defaults for a senior software engineer
+- If a field requires information not provided, leave it blank or skip it
+- Take note of any confirmation number or reference ID after submission
+
+Report back:
+- Company name and job title
+- Whether the application was submitted successfully
+- Any confirmation number or reference
+- Any fields that couldn't be filled
+- Any errors encountered
