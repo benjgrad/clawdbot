@@ -1,0 +1,41 @@
+{
+    "cookies": [
+        {
+            "name": "_GRECAPTCHA",
+            "value": "09AKhCRwjTH2n8LRU1McrD4MUMhDXghD-sVMnBWKtnTd3obc2OG7tnaB2PkoMCzq_7iHbEZdGiXflBmScJ1YRdR_4",
+            "domain": "www.recaptcha.net",
+            "path": "/recaptcha",
+            "expires": 1785790732.859735,
+            "size": 100,
+            "httpOnly": true,
+            "secure": true,
+            "session": false,
+            "sameSite": "None",
+            "priority": "High",
+            "sameParty": false,
+            "sourceScheme": "Secure",
+            "sourcePort": 443
+        }
+    ],
+    "origins": [
+        {
+            "origin": "https://job-boards.greenhouse.io",
+            "localStorage": [
+                {
+                    "name": "_grecaptcha",
+                    "value": "09AKhCRwhL2Lfud8puGn-M20J5LJWlMtcFcpWHlujcHY4ZpbuZPgoHSrbgU3SoAbXb33-gu3hKNgzk7OULChQwVKHzQfbAxa8a1robEgqktT7WS17FVld3_gRMY-0XfJML"
+                },
+                {
+                    "name": "snowplowOutQueue_job-board-renderer-tracker",
+                    "value": "[]"
+                }
+            ],
+            "sessionStorage": [
+                {
+                    "name": "gh-test",
+                    "value": "gh-test"
+                }
+            ]
+        }
+    ]
+}

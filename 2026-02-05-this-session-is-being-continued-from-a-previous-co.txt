@@ -1,0 +1,565 @@
+
+ ▐▛███▜▌   Claude Code v2.1.31
+▝▜█████▛▘  Opus 4.5 · Claude Max
+  ▘▘ ▝▝    ~/clawd
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Read captures/browser-sessions/fake_stale/status.json (8 lines)
+  ⎿  Read captures/browser-sessions/4a54309f/status.json (8 lines)
+  ⎿  Read ../../../tmp/browse_test/lifetime_test.log (34 lines)
+  ⎿  Plan file referenced (~/.claude/plans/noble-sleeping-robin.md)
+
+● Continuing with the approved context overflow fix plan. Let me read the
+  current state of the three files I need to modify.
+
+● Read 3 files (ctrl+o to expand)
+
+● Good, I have all three files. Let me implement all three changes now.
+
+● Write(skills/browser/SKILL.md)
+  ⎿  Added 14 lines, removed 3 lines
+       6  
+       7  # Browser Automation
+       8  
+       9 -AI-powered browser agent with two modes: **interactive sessions
+         -** (browser persists across messages) and **one-shot tasks** (s
+         -ingle command, browser closes after).                          
+       9 +> **IMPORTANT — Context Management**                           
+      10 +>                                                              
+      11 +> **Always use `browse_session.py` or `browser_agent.py`** for 
+         +web browsing tasks.                                            
+      12 +> These run a **separate AI agent in a subprocess** with its ow
+         +n LLM context,                                                 
+      13 +> so only a small JSON result comes back to your session — keep
+         +ing your context lean.                                         
+      14 +>                                                              
+      15 +> **Do NOT use the built-in `browser` tool** (snapshot/act) for
+         + browsing tasks.                                               
+      16 +> Each snapshot adds ~1-2K tokens to your session context. Over
+         + a few interactions                                            
+      17 +> this bloats the session to 50K+ tokens, hitting rate limits a
+         +nd causing context overflow.                                   
+      18 +>                                                              
+      19 +> The **only** acceptable use of the built-in browser is to rea
+         +d a single element                                             
+      20 +> from an already-open page (e.g. confirm a URL). For anything 
+         +else, use the scripts below.                                   
+      21  
+      22  **For job applications, use the `job-apply` skill instead.**
+      23  
+      24  ## When to Use This Skill
+      25  
+      26 +- Any web browsing task (searching, reading, interacting with w
+         +ebsites)                                                       
+      27  - Page has a CAPTCHA (reCAPTCHA, hCaptcha, Turnstile)
+      28  - Complex multi-step flow that needs AI judgment
+      29  - Need to log into a service
+      18 -- Interactive browsing where you send follow-up instructions   
+      19 -- The built-in `browser` tool's snapshot/act cycle is too tedio
+         -us                                                             
+      30 +- Interactive browsing where the user sends follow-up instructi
+         +ons                                                            
+      31  
+      32  ## Interactive Session (Recommended)
+      33  
+
+● Update(skills/browser/scripts/browse_session.py)
+  ⎿  Added 6 lines
+      21  import asyncio
+      22  import atexit
+      23  import json
+      24 +import logging                                                 
+      25  import os
+      26  import signal
+      27  import sys
+     ...
+      29  import uuid
+      30  from pathlib import Path
+      31  
+      32 +# Suppress verbose browser-use and httpx INFO logs (they leak t
+         +o stderr                                                       
+      33 +# and can bloat clawdbot session context if captured).         
+      34 +logging.getLogger("browser_use").setLevel(logging.WARNING)     
+      35 +logging.getLogger("httpx").setLevel(logging.WARNING)           
+      36 +                                                               
+      37  # Add tools directory to path
+      38  TOOLS_DIR = Path(__file__).resolve().parent.parent.parent.paren
+          t / "tools"
+      39  sys.path.insert(0, str(TOOLS_DIR))
+
+● Update(tools/browser_agent.py)
+  ⎿  Added 5 lines
+      14  """
+      15  
+      16  import asyncio
+      17 +import logging                                                 
+      18  import os
+      19  import sys
+      20  
+      21 +# Suppress verbose browser-use and httpx INFO logs             
+      22 +logging.getLogger("browser_use").setLevel(logging.WARNING)     
+      23 +logging.getLogger("httpx").setLevel(logging.WARNING)           
+      24 +                                                               
+      25  from dotenv import load_dotenv
+      26  
+      27  load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+● All three code changes are done. Now let me reset the bloated #test session
+  (change 3 from the plan).
+
+● Read 2 files (ctrl+o to expand)
+
+● 3.3MB session file. Let me remove it and clean the sessions.json entry.
+
+● Bash(rm ~/.clawdbot/agents/main/sessions/9318a7b9-96a0-411b-bcfc-4f7bae5ef3fd.
+      jsonl)
+  ⎿  (No content)
+
+● Read 1 file (ctrl+o to expand)
+
+● Now I need to remove the 9318a7b9 session entry from sessions.json. Let me do
+  this cleanly with Python to avoid breaking the JSON.
+
+● Bash(python3 -c "
+      import json…)
+  ⎿  Removed session entry: agent:main:discord:channel:1468398362935165009
+     sessions.json updated
+
+● Now let me restart clawdbot so it picks up the changes (new SKILL.md and fresh
+   session).
+
+● Bash(systemctl --user restart clawdbot-gateway.service && echo "Restarted" &&
+      sleep 2 && systemctl --user status clawdbot-gateway.service --no-pager |
+      head -15)
+  ⎿ Restarted
+    ● clawdbot-gateway.service - Clawdbot Gateway (v2026.1.24-3)
+         Loaded: loaded (/home/bengrady4/.config/systemd/user/clawdbot-gate
+    … +13 lines (ctrl+o to expand)
+
+
+● All done. Here's a summary of the three changes implemented:
+
+  1. Rewrote skills/browser/SKILL.md -- Added a prominent IMPORTANT block at the
+   top explicitly telling the agent to:
+  - Always use browse_session.py or browser_agent.py (subprocess with separate
+  LLM context)
+  - Never use the built-in browser tool for browsing (it accumulates ~1-2K
+  tokens per snapshot in the session)
+
+  2. Added logging suppression to both scripts:
+  - skills/browser/scripts/browse_session.py -- browser_use and httpx loggers
+  set to WARNING
+  - tools/browser_agent.py -- same suppression
+
+  3. Reset the bloated #test session:
+  - Deleted the 3.3MB .jsonl file
+  - Removed the agent:main:discord:channel:1468398362935165009 entry from
+  sessions.json (was at 71K tokens)
+  - Restarted clawdbot -- it's running clean
+
+  You can now test from Discord #test again. The next message there will start a
+   fresh session, and the agent should use browse_session.py instead of the
+  built-in browser tool, keeping context lean.
+
+✻ Sautéed for 9m 9s
+
+❯ Wow. Everything seems to be working when I use the browser skill. If I    
+  use the apply skill, the risk of failure is much higher, since we could   
+  be blocked by these job boards. I need you to examine each one again,     
+  look at what we've learned in this session, look at the logs and the      
+  reasons we've failed in the past and give me a risk assessment for using  
+  the apply skill. Don't be optimistic, I want you to be realistic. For     
+  each risk propose a mitigation strategy                                   
+
+● Let me read the existing plan and then investigate the apply skill's failure
+  history thoroughly.
+
+● Read 1 file (ctrl+o to expand)
+
+● This is a different task entirely — a risk assessment, not the previous
+  context overflow fix. Let me launch explore agents to investigate the apply
+  skill's code, failure history, and logs.
+
+● 3 Explore agents finished (ctrl+o to expand)
+   ├─ Explore apply.py failure modes · 6 tool uses · 30.5k tokens
+   │  ⎿  Done
+   ├─ Explore past application results · 20 tool uses · 30.8k tokens
+   │  ⎿  Done
+   └─ Explore browser-use library limits · 28 tool uses · 98.5k tokens
+      ⎿  Done
+
+● Excellent — I now have a thorough picture. Let me synthesize all findings into
+   the risk assessment.
+
+● Updated plan
+  ⎿  /plan to preview
+  ⎿  User rejected Claude's plan:
+     ╭─────────────────────────────────────────────────────────────────────────╮
+     │ Risk Assessment: Job-Apply Skill                                        │
+     │                                                                         │
+     │ Based on investigation of apply.py, browser_utils.py,                   │
+     │ fetch_verification_code.py, past application results in                 │
+     │ captures/applications/, and the browser-use library's anti-detection    │
+     │ posture.                                                                │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Track Record                                                            │
+     │ Application: Rockstar Games                                             │
+     │ Platform: Greenhouse                                                    │
+     │ Form Completed?: Yes                                                    │
+     │ Submitted?: Yes                                                         │
+     │ Final Outcome: Pending email verification                               │
+     │ Failure Point: Verification code not auto-retrieved                     │
+     │ ────────────────────────────────────────                                │
+     │ Application: MaintainX                                                  │
+     │ Platform: Greenhouse                                                    │
+     │ Form Completed?: Yes                                                    │
+     │ Submitted?: Yes                                                         │
+     │ Final Outcome: Failed                                                   │
+     │ Failure Point: IMAP auth error (GMAIL_APP_PASSWORD invalid)             │
+     │ ────────────────────────────────────────                                │
+     │ Application: rockstargames-test                                         │
+     │ Platform: —                                                             │
+     │ Form Completed?: Cover letter only                                      │
+     │ Submitted?: No                                                          │
+     │ Final Outcome: Abandoned                                                │
+     │ Failure Point: Never launched agent                                     │
+     │ ────────────────────────────────────────                                │
+     │ Application: rockstar-games                                             │
+     │ Platform: —                                                             │
+     │ Form Completed?: Cover letter only                                      │
+     │ Submitted?: No                                                          │
+     │ Final Outcome: Abandoned                                                │
+     │ Failure Point: Never launched agent                                     │
+     │ Form completion rate: 2/2 (100%). Final submission rate: 0/2 (0%). Both │
+     │ failures were at the email verification step, not the form-filling step.│
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 1: Email Verification Barrier (CRITICAL)                           │
+     │                                                                         │
+     │ Severity: Critical — blocks 100% of Greenhouse applications at the last │
+     │ step                                                                    │
+     │ Likelihood: Near-certain for Greenhouse ATS (both past attempts hit     │
+     │ this)                                                                   │
+     │                                                                         │
+     │ What happens: Greenhouse sends an 8-character code to                   │
+     │ bengrady4@gmail.com after form submission. fetch_verification_code.py   │
+     │ tries to poll Gmail IMAP for 5 minutes. In the MaintainX case, IMAP auth│
+     │  failed outright. In the Rockstar case, auto-retrieval wasn't even      │
+     │ attempted.                                                              │
+     │                                                                         │
+     │ Why it fails:                                                           │
+     │ - GMAIL_APP_PASSWORD was invalid/missing in ~/.clawdbot/.env at time of │
+     │ MaintainX attempt                                                       │
+     │ - Sender keyword IMAP filtering is case-sensitive ("Greenhouse" won't   │
+     │ match "greenhouse")                                                     │
+     │ - Regex extraction is fragile — 6 patterns, but Greenhouse uses an      │
+     │ 8-char alphanumeric code that only matches pattern 6 ([A-Za-z0-9]{8}),  │
+     │ which is very broad and could false-match                               │
+     │ - 5-minute timeout may be too short if Gmail delays delivery            │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Verify GMAIL_APP_PASSWORD works right now — run a standalone IMAP    │
+     │ test before any application attempt                                     │
+     │ 2. Make IMAP sender filtering case-insensitive — the FROM IMAP search   │
+     │ keyword is already case-insensitive per RFC, but double-check with real │
+     │ Greenhouse emails                                                       │
+     │ 3. Add a Greenhouse-specific code pattern — their codes are consistently│
+     │  8-char alphanumeric, anchor the regex more tightly                     │
+     │ 4. Extend timeout to 10 minutes — email delivery can be slow            │
+     │ 5. Fall back to Discord prompt — if auto-retrieval fails, immediately   │
+     │ ask Ben via Discord to paste the code manually (this path exists but    │
+     │ isn't well-integrated)                                                  │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 2: Bot Detection / IP Blocking (HIGH)                              │
+     │                                                                         │
+     │ Severity: High — application silently rejected or account flagged       │
+     │ Likelihood: Moderate now (Greenhouse didn't block us), but increases    │
+     │ with volume                                                             │
+     │                                                                         │
+     │ What happens: Job boards detect automated browser activity and either   │
+     │ block the session, serve a CAPTCHA wall, or silently flag the           │
+     │ application for rejection.                                              │
+     │                                                                         │
+     │ Current exposure:                                                       │
+     │ - No proxy rotation — your real residential/datacenter IP is used for   │
+     │ every application                                                       │
+     │ - No user agent rotation — static Chromium UA fingerprint               │
+     │ - Headless mode — some sites detect headless Chrome via WebGL, canvas   │
+     │ fingerprinting, or timing analysis                                      │
+     │ - CDP detection — advanced sites can detect Chrome DevTools Protocol via│
+     │  timing side-channels                                                   │
+     │ - Behavioral patterns — instant form fills, no mouse jitter, no         │
+     │ "browsing around" before applying                                       │
+     │                                                                         │
+     │ What's working for us:                                                  │
+     │ - browser-use disables navigator.webdriver flag automatically           │
+     │ - browser-use injects isTrusted: true on synthetic events               │
+     │ - browser-use loads uBlock Origin and cookie-consent extensions by      │
+     │ default                                                                 │
+     │ - Greenhouse ATS specifically hasn't blocked us yet (their detection is │
+     │ moderate)                                                               │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Add rotating residential proxies — browser-use supports              │
+     │ ProxySettings(server, username, password) natively; services like       │
+     │ BrightData or IPRoyal cost ~$5-10/GB                                    │
+     │ 2. Rotate user agents — BrowserProfile(user_agent=...) is already       │
+     │ supported; maintain a list of 5-10 real Chrome UAs                      │
+     │ 3. Add random delays between actions — browser-use has                  │
+     │ wait_between_actions param; set to 1-3s with jitter                     │
+     │ 4. Warm up sessions — visit the company homepage and browse around      │
+     │ before navigating to the application form                               │
+     │ 5. Limit volume — don't apply to more than 2-3 jobs per day from the    │
+     │ same IP                                                                 │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 3: ATS Platform Diversity (HIGH)                                   │
+     │                                                                         │
+     │ Severity: High — completely different flows, selectors, and requirements│
+     │  per platform                                                           │
+     │ Likelihood: Certain once you move beyond Greenhouse                     │
+     │                                                                         │
+     │ What happens: Every ATS (Lever, Workday, Ashby, BambooHR,               │
+     │ SmartRecruiters, iCIMS, Taleo, etc.) has a completely different         │
+     │ application flow. The current system has only been tested on Greenhouse.│
+     │  Other platforms will have:                                             │
+     │ - Different form layouts and field names                                │
+     │ - Different file upload mechanisms (drag-and-drop, modal dialogs,       │
+     │ separate pages)                                                         │
+     │ - Different authentication flows (create account first vs. apply as     │
+     │ guest)                                                                  │
+     │ - Different CAPTCHA implementations                                     │
+     │ - Multi-page vs. single-page forms                                      │
+     │ - Required fields that vary by employer configuration                   │
+     │                                                                         │
+     │ Current state: The agent prompt in apply.py is generic enough to handle │
+     │ varied forms (it instructs the AI agent to navigate any application     │
+     │ flow). But:                                                             │
+     │ - The sensitive_data dict only covers name/email/phone/linkedin — no    │
+     │ address, work history, education, salary expectations, etc.             │
+     │ - CAPTCHA solving only handles reCAPTCHA v2, hCaptcha, and Turnstile —  │
+     │ not custom CAPTCHAs or puzzle-based challenges                          │
+     │ - Some platforms (Workday, Taleo) require multi-page account creation   │
+     │ with email verification before you can even see the form                │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Expand sensitive_data to include common fields: mailing address,     │
+     │ salary expectations, start date, education history, work authorization  │
+     │ details                                                                 │
+     │ 2. Test on Lever and Workday — these are the next most common ATS       │
+     │ platforms; run dry-run applications on test postings                    │
+     │ 3. Add platform-specific prompt hints — detect the ATS from the URL     │
+     │ domain and inject platform-specific instructions into the agent prompt  │
+     │ 4. Accept partial success — some platforms will simply be too hostile;  │
+     │ track which platforms work and which don't, and focus effort on the ones│
+     │  that work                                                              │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 4: Silent Submission Failures (MEDIUM-HIGH)                        │
+     │                                                                         │
+     │ Severity: Medium-High — you think you applied but didn't                │
+     │ Likelihood: Moderate                                                    │
+     │                                                                         │
+     │ What happens: The agent reports "application submitted successfully" but│
+     │  one of these occurred:                                                 │
+     │ - Resume file wasn't actually uploaded (upload field was hidden,        │
+     │ non-standard, or drag-drop only)                                        │
+     │ - Cover letter was ignored (no matching field found)                    │
+     │ - CAPTCHA token was injected into wrong DOM selector and form submission│
+     │  silently failed                                                        │
+     │ - Required field was left empty and form submitted to a validation error│
+     │  page the agent didn't recognize                                        │
+     │ - Agent hit max steps (80) before completing the form and reported      │
+     │ partial progress as success                                             │
+     │                                                                         │
+     │ Evidence: In the MaintainX application, the agent reported "SUCCESSFULLY│
+     │  SUBMITTED (Pending Email Verification)" but result.json status was     │
+     │ marked "failed" — showing a disconnect between agent perception and     │
+     │ reality.                                                                │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Add post-submission verification — after the agent reports success,  │
+     │ take a screenshot and check for confirmation page keywords ("thank you",│
+     │  "received", "confirmation number")                                     │
+     │ 2. Validate resume upload — add an agent instruction: "After uploading  │
+     │ the resume, verify the filename appears on the page before proceeding"  │
+     │ 3. Increase max_steps from 80 to 120 for complex multi-page forms       │
+     │ 4. Log the final page URL — confirmation pages typically have distinct  │
+     │ URLs (e.g., /thank-you, /confirmation)                                  │
+     │ 5. Cross-reference with email — check Gmail for "application received"  │
+     │ confirmation emails after submission                                    │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 5: CAPTCHA Solving Reliability (MEDIUM)                            │
+     │                                                                         │
+     │ Severity: Medium — blocks application if encountered                    │
+     │ Likelihood: Low on Greenhouse (neither past attempt hit one), higher on │
+     │ other platforms                                                         │
+     │                                                                         │
+     │ What happens: CapSolver API fails to solve the CAPTCHA, or the solved   │
+     │ token can't be injected into the page.                                  │
+     │                                                                         │
+     │ Current gaps:                                                           │
+     │ - CAPTCHA detection relies on data-sitekey attribute regex — modern     │
+     │ CAPTCHAs may use different attributes                                   │
+     │ - Token injection uses hardcoded selectors (#g-recaptcha-response,      │
+     │ [name="h-captcha-response"], [name="cf-turnstile-response"]) — custom   │
+     │ implementations will fail                                               │
+     │ - CapSolver has a 3-minute timeout with no retry                        │
+     │ - reCAPTCHA v3 (invisible/score-based) is NOT supported — only v2       │
+     │ checkbox                                                                │
+     │ - No support for FunCAPTCHA, GeeTest, or puzzle-based challenges        │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Add retry logic — retry CapSolver once on timeout before giving up   │
+     │ 2. Add reCAPTCHA v3 support — CapSolver supports                        │
+     │ RecaptchaV3TaskProxyless; add detection for grecaptcha.execute calls    │
+     │ 3. Broaden CAPTCHA detection — check for data-captcha-id, iframe-based  │
+     │ CAPTCHAs, and script src patterns (not just data-sitekey)               │
+     │ 4. Accept the gap on exotic CAPTCHAs — FunCAPTCHA and GeeTest are rare  │
+     │ on job boards; not worth the engineering effort yet                     │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 6: Credential & Configuration Fragility (MEDIUM)                   │
+     │                                                                         │
+     │ Severity: Medium — entire skill fails if any credential is wrong        │
+     │ Likelihood: Moderate (already happened: MaintainX failed due to bad     │
+     │ GMAIL_APP_PASSWORD)                                                     │
+     │                                                                         │
+     │ What happens: The skill depends on 3 separate API credentials, any of   │
+     │ which can expire or be misconfigured:                                   │
+     │ - ANTHROPIC_API_KEY — required for the browser agent's LLM              │
+     │ - CAPSOLVER_API_KEY — required for CAPTCHA solving                      │
+     │ - GMAIL_APP_PASSWORD — required for email verification                  │
+     │                                                                         │
+     │ Plus the hardcoded model ID claude-sonnet-4-20250514 in browser_utils.py│
+     │  which will break when the model is deprecated.                         │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Pre-flight credential check — before starting an application, verify │
+     │ all 3 credentials are set and valid (test IMAP login, test Anthropic    │
+     │ API, test CapSolver balance)                                            │
+     │ 2. Use model alias — change claude-sonnet-4-20250514 to                 │
+     │ claude-sonnet-4-5-latest or parameterize it                             │
+     │ 3. Surface errors clearly — when a credential fails mid-application,    │
+     │ report which specific credential failed (not just a generic error)      │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 7: Session/Context Bloat from Discord (MEDIUM)                     │
+     │                                                                         │
+     │ Severity: Medium — causes rate limit errors and session corruption      │
+     │ Likelihood: Low after our fix, but could recur                          │
+     │                                                                         │
+     │ What happens: The clawdbot agent accumulates tokens in its Discord      │
+     │ session. The apply skill runs apply.py as a subprocess (good — separate │
+     │ context), but if the agent also reads back large result files, history  │
+     │ JSONs, or verbose logs, the session can still bloat.                    │
+     │                                                                         │
+     │ Current state: We just fixed this for the browser skill. The apply skill│
+     │  already runs as a subprocess, so it's inherently better isolated. But  │
+     │ result.json and history.json can be 10-300KB each.                      │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Don't read full history.json back — only read result.json (small) and│
+     │  a single screenshot                                                    │
+     │ 2. Truncate agent output — cap the result summary to 500 chars when     │
+     │ reporting back to Discord                                               │
+     │ 3. Already mitigated by running apply.py as subprocess with its own LLM │
+     │ context                                                                 │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Risk 8: Resume/Cover Letter Path Breakage (LOW-MEDIUM)                  │
+     │                                                                         │
+     │ Severity: Low-Medium — application submitted without resume             │
+     │ Likelihood: Low (paths are hardcoded and currently correct)             │
+     │                                                                         │
+     │ What happens: apply.py hardcodes the resume path as                     │
+     │ captures/resume/Benjamin Grady - Senior Software Engineer.pdf. If the   │
+     │ file is moved, renamed, or missing, the agent may submit an application │
+     │ without a resume — and report success anyway.                           │
+     │                                                                         │
+     │ Mitigation:                                                             │
+     │ 1. Validate file exists at startup — fail fast with a clear error if    │
+     │ resume PDF is missing                                                   │
+     │ 2. Parameterize resume path — accept it as a CLI argument instead of    │
+     │ hardcoding                                                              │
+     │                                                                         │
+     │ ---                                                                     │
+     │ Overall Risk Summary                                                    │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │ #: 1                                                                    │
+     │ Risk: Email verification barrier                                        │
+     │ Severity: Critical                                                      │
+     │ Likelihood: Near-certain (Greenhouse)                                   │
+     │ Impact: Blocks final submission                                         │
+     │ ────────────────────────────────────────                                │
+     │ #: 2                                                                    │
+     │ Risk: Bot detection / IP blocking                                       │
+     │ Severity: High                                                          │
+     │ Likelihood: Moderate, grows with volume                                 │
+     │ Impact: Silent rejection or block                                       │
+     │ ────────────────────────────────────────                                │
+     │ #: 3                                                                    │
+     │ Risk: ATS platform diversity                                            │
+     │ Severity: High                                                          │
+     │ Likelihood: Certain beyond Greenhouse                                   │
+     │ Impact: Unpredictable failures                                          │
+     │ ────────────────────────────────────────                                │
+     │ #: 4                                                                    │
+     │ Risk: Silent submission failures                                        │
+     │ Severity: Medium-High                                                   │
+     │ Likelihood: Moderate                                                    │
+     │ Impact: False sense of success                                          │
+     │ ────────────────────────────────────────                                │
+     │ #: 5                                                                    │
+     │ Risk: CAPTCHA solving reliability                                       │
+     │ Severity: Medium                                                        │
+     │ Likelihood: Low-Medium                                                  │
+     │ Impact: Blocks application                                              │
+     │ ────────────────────────────────────────                                │
+     │ #: 6                                                                    │
+     │ Risk: Credential fragility                                              │
+     │ Severity: Medium                                                        │
+     │ Likelihood: Moderate (already happened)                                 │
+     │ Impact: Entire skill fails                                              │
+     │ ────────────────────────────────────────                                │
+     │ #: 7                                                                    │
+     │ Risk: Session/context bloat                                             │
+     │ Severity: Medium                                                        │
+     │ Likelihood: Low (after fix)                                             │
+     │ Impact: Rate limits, corruption                                         │
+     │ ────────────────────────────────────────                                │
+     │ #: 8                                                                    │
+     │ Risk: Resume path breakage                                              │
+     │ Severity: Low-Medium                                                    │
+     │ Likelihood: Low                                                         │
+     │ Impact: Incomplete application                                          │
+     │ Recommended Priority Order for Mitigations                              │
+     │                                                                         │
+     │ 1. Fix email verification (Risk 1) — this is the #1 blocker. Verify     │
+     │ GMAIL_APP_PASSWORD works, improve regex, extend timeout, integrate      │
+     │ Discord manual fallback                                                 │
+     │ 2. Add pre-flight credential check (Risk 6) — 30 minutes of work,       │
+     │ prevents the exact failure we already saw                               │
+     │ 3. Add post-submission verification (Risk 4) — confirm the application  │
+     │ actually went through                                                   │
+     │ 4. Test on Lever + Workday (Risk 3) — expand beyond Greenhouse before   │
+     │ relying on the skill                                                    │
+     │ 5. Add proxy rotation (Risk 2) — needed before applying at volume       │
+     │ 6. Improve CAPTCHA handling (Risk 5) — add retry logic and v3 support   │
+     ╰─────────────────────────────────────────────────────────────────────────╯

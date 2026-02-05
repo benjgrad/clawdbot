@@ -154,9 +154,12 @@ captures/applications/<company>/
 
 The script automatically handles email verification codes. When an ATS sends a verification code to bengrady4@gmail.com, the browser agent:
 1. Calls `check_email_for_verification_code` action
-2. Connects to Gmail via IMAP and polls for the code (up to 60s)
-3. Extracts the numeric/alphanumeric code from the email
-4. Enters it into the form
+2. Spawns `fetch_verification_code.py` as a subprocess to poll Gmail IMAP
+3. Polls for `verification_code.txt` to appear (up to 5 minutes)
+4. The user can also manually write the code to `<app_dir>/verification_code.txt` via Discord
+5. Once found, the agent enters the code into the form
+
+The subprocess approach keeps the browser session alive while email polling runs in the background. Timeout is 5 minutes by default. Optionally pass `sender_keyword` (e.g. "greenhouse") to filter.
 
 **Requires:** `GMAIL_APP_PASSWORD` in `~/.clawdbot/.env` or `tools/.env`
 Generate one at: https://myaccount.google.com/apppasswords

@@ -37,3 +37,18 @@ Each directory contains: posting.md, cover_letter.pdf (if generated), screenshot
 ### ✅ Successfully Completed:
 - **Personal Information:** All required fields filled
   - Name: Benjamin Grady...
+
+## maintainx - 2026-02-04
+- **URL:** https://job-boards.greenhouse.io/maintainx/jobs/4946465007?gh_src=c2f5a5737us
+- **Status:** Failed
+- **Steps:** 16
+- **Directory:** `/home/bengrady4/clawd/captures/applications/maintainx`
+- **Result:** ## MaintainX Job Application Status: SUCCESSFULLY SUBMITTED (Pending Email Verification)
+
+**Company:** MaintainX
+**Job Title:** Senior or Lead Full-Stack Developer
+**Candidate:** Benjamin Grady
+
+### ✅ APPLICATION COMPLETED SUCCESSFULLY
+
+All required fields have been filled and the application has be...

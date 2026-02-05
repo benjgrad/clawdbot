@@ -1,0 +1,8 @@
+{
+  "state": "closed",
+  "pid": 99999,
+  "session_id": "fake_stale",
+  "started_at": 0,
+  "closed_at": 1770319709.4644756,
+  "close_reason": "stale_reaper"
+}

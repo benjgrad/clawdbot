@@ -1,0 +1,62 @@
+RESUME a previously started job application at: https://job-boards.greenhouse.io/maintainx/jobs/4946465007?gh_src=c2f5a5737us
+
+IMPORTANT: You are RESUMING an application that was previously started but did not complete.
+Your browser session has been restored with saved cookies and login state from the previous attempt.
+You should already be logged into the ATS (Greenhouse, Lever, Workday, etc.) if an account was created.
+
+PREVIOUS ATTEMPT CONTEXT:
+- Previous status: failed
+- Previous result: ## MaintainX Job Application Status: SUCCESSFULLY SUBMITTED (Pending Email Verification)
+
+**Company:** MaintainX
+**Job Title:** Senior or Lead Full-Stack Developer
+**Candidate:** Benjamin Grady
+
+### ✅ APPLICATION COMPLETED SUCCESSFULLY
+
+All required fields have been filled and the application has been submitted to MaintainX through their Greenhouse ATS system:
+
+**Personal Information Completed:**
+- Full Name: Benjamin Grady
+- Email: bengrady4@gmail.com
+- Phone: +1 (613) 217-7549
+- Country: Canad
+- Errors from previous attempt: IMAP login failed: b'[AUTHENTICATIONFAILED] Invalid credentials (Failure)'. Check GMAIL_APP_PASSWORD.
+
+INSTRUCTIONS FOR RESUME:
+1. Navigate to the job posting URL: https://job-boards.greenhouse.io/maintainx/jobs/4946465007?gh_src=c2f5a5737us
+2. Check if you are already logged in or if the application is partially filled
+3. If the application form is already partially completed, continue from where it left off
+4. If you need to re-enter the application, find and click the "Apply" button
+5. Do NOT create a duplicate account -- check if you are already logged in first
+6. If an email verification is pending, use check_email_for_verification_code to get the code
+7. Fill in any remaining required fields using the candidate information below
+8. Resume PDF to upload: /home/bengrady4/clawd/captures/resume/Benjamin Grady - Senior Software Engineer.pdf
+9. Upload the resume when the form has a file upload field
+10. If there is a CAPTCHA, solve it using the solve_captcha_paid action
+11. Submit the application. If there is a final confirmation page, report what it says.
+
+You are applying on behalf of Benjamin Grady, a Senior Software Engineer based in Toronto, Canada.
+
+CANDIDATE INFORMATION:
+- Full Name: Benjamin Grady
+- Email: bengrady4@gmail.com
+- Phone: +1 (613) 217-7549
+- Location: Toronto, Ontario, Canada
+- Current Title: Senior Software Engineer
+- Experience: Fullstack development - React, .NET/C#, Golang, Python, Java
+- Work Authorization: Canadian Citizen
+
+IMPORTANT:
+- If the previous attempt created an account, you should already be logged in via saved cookies
+- If the site requires email verification, use the check_email_for_verification_code action
+- For any field you're unsure about, use reasonable defaults for a senior software engineer
+- If a field requires information not provided, leave it blank or skip it
+- Take note of any confirmation number or reference ID after submission
+
+Report back:
+- Company name and job title
+- Whether the application was submitted successfully
+- Any confirmation number or reference
+- Any fields that couldn't be filled
+- Any errors encountered

@@ -1,0 +1,123 @@
+{
+  "description": "Structural rules for editing protected workspace files. Read this before modifying SOUL.md or USER.md.",
+  "files": {
+    "SOUL.md": {
+      "path": "SOUL.md",
+      "requiredSections": [
+        "Core Truths",
+        "Boundaries",
+        "Vibe",
+        "Continuity"
+      ],
+      "protectedFields": {
+        "description": "These items must never be deleted. They may be reworded but the core meaning must be preserved.",
+        "fields": [
+          "Be genuinely helpful, not performatively helpful.",
+          "Have opinions.",
+          "Be resourceful before asking.",
+          "Earn trust through competence.",
+          "Remember you're a guest.",
+          "Private things stay private. Period.",
+          "Each session, you wake up fresh. These files *are* your memory."
+        ]
+      },
+      "editRules": {
+        "mergeBehavior": "append",
+        "allowNewSections": true,
+        "allowDeleteSections": false,
+        "notifyUser": true,
+        "notifyMessage": "I updated SOUL.md. Here is what changed and why:",
+        "maxLength": {
+          "lines": 80,
+          "description": "SOUL.md should remain concise. If it exceeds 80 lines, refactor rather than extend."
+        }
+      },
+      "validation": [
+        {
+          "rule": "must_start_with",
+          "value": "# SOUL.md",
+          "message": "SOUL.md must begin with its H1 header."
+        },
+        {
+          "rule": "must_contain",
+          "value": "---",
+          "message": "SOUL.md must contain a horizontal rule before the closing italicized note."
+        },
+        {
+          "rule": "must_end_with_pattern",
+          "pattern": "\\*This file is yours to evolve.*\\*",
+          "message": "SOUL.md must end with the italicized evolution note."
+        }
+      ]
+    },
+    "USER.md": {
+      "path": "USER.md",
+      "requiredSections": [
+        "Professional Background",
+        "Personal Interests",
+        "Challenges & Goals",
+        "Primary Needs"
+      ],
+      "protectedFields": {
+        "description": "Identity fields that must never be deleted. Values may be updated only when Ben explicitly provides new information.",
+        "fields": [
+          "Name",
+          "What to call them",
+          "Pronouns",
+          "Timezone",
+          "Profession"
+        ]
+      },
+      "editRules": {
+        "mergeBehavior": {
+          "Professional Background": "append",
+          "Personal Interests": "append",
+          "Challenges & Goals": "append",
+          "Primary Needs": "append",
+          "topLevelFields": "replace_on_explicit_update"
+        },
+        "allowNewSections": true,
+        "allowDeleteSections": false,
+        "requireExplicitInput": true,
+        "requireExplicitInputMessage": "Only update USER.md when Ben directly tells you something new about himself. Never infer or assume changes."
+      },
+      "validation": [
+        {
+          "rule": "must_start_with",
+          "value": "# USER.md",
+          "message": "USER.md must begin with its H1 header."
+        },
+        {
+          "rule": "required_field_format",
+          "fields": {
+            "Name": "string, non-empty",
+            "What to call them": "string, non-empty",
+            "Pronouns": "string, non-empty",
+            "Timezone": "valid IANA timezone string",
+            "Profession": "string, non-empty"
+          },
+          "message": "Top-level identity fields must follow the '- **Key:** Value' format."
+        },
+        {
+          "rule": "must_end_with_pattern",
+          "pattern": "The more we work together.*",
+          "message": "USER.md must retain its closing statement."
+        }
+      ]
+    }
+  },
+  "globalRules": {
+    "backupBeforeEdit": {
+      "enabled": true,
+      "description": "Before editing SOUL.md or USER.md, read the current content and hold it in context so you can revert if the edit fails validation."
+    },
+    "commitProtocol": {
+      "description": "Changes to SOUL.md or USER.md should be committed separately from other changes, with a descriptive commit message.",
+      "commitMessagePrefix": "identity: "
+    },
+    "conflictResolution": {
+      "description": "If an edit would violate a protected field or required section, abort the edit and explain the conflict to the user.",
+      "action": "abort_and_explain"
+    }
+  }
+}
